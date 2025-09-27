@@ -1,6 +1,6 @@
 # 🌍 AI Voyage Assistant
 
-An intelligent travel planning assistant that helps you find hotels, flights, and travel information using advanced web scraping and AI-powered recommendations.
+> **Paris AI Hackathon Project** - An intelligent travel planning assistant that helps you find hotels, flights, and travel information using advanced web scraping and AI-powered recommendations.
 
 ## ✨ Features
 
