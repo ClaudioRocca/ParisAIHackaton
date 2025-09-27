@@ -1,0 +1,21 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Travel agent",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "streamlit",
+            "justMyCode": false,
+            "args": [
+                "run",
+                "${workspaceFolder}/chat.py",
+                "--server.port",
+                "8501"
+            ],
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}"
+            },
+        }
+    ]
+}
