@@ -7,6 +7,9 @@ Simplified tools for scraping hotel and flight information.
 
 import os
 import requests
+import urllib3
+import socket
+import ssl
 from bs4 import BeautifulSoup
 from typing import Dict, List, Optional, Any
 import json
@@ -45,7 +48,7 @@ class LightpandaScraper:
     
     def scrape_with_lightpanda(self, url: str) -> str:
         """
-        Scrape using Lightpanda API
+        Scrape using Lightpanda API with improved SSL handling and error recovery
         """
         try:
             payload = {
@@ -62,12 +65,37 @@ class LightpandaScraper:
             }
             
             logger.info(f"Sending request to Lightpanda API: {self.api_endpoint}")
-            response = requests.post(
-                self.api_endpoint,
-                json=payload,
-                headers=headers,
-                timeout=30
-            )
+            
+            # Create a session with better SSL configuration
+            session = requests.Session()
+            session.headers.update(headers)
+            
+            # Try with different timeout and SSL configurations
+            try:
+                # First attempt: Normal SSL with shorter timeouts
+                response = session.post(
+                    self.api_endpoint,
+                    json=payload,
+                    timeout=(10, 30),  # (connect_timeout, read_timeout)
+                    verify=True,
+                    allow_redirects=True
+                )
+                
+            except (requests.exceptions.SSLError, requests.exceptions.ConnectTimeout) as e:
+                logger.warning(f"SSL/timeout error, trying alternative approach: {e}")
+                
+                # Second attempt: Disable SSL verification as fallback
+                import urllib3
+                urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+                
+                response = session.post(
+                    self.api_endpoint,
+                    json=payload,
+                    timeout=(15, 45),  # Longer timeouts
+                    verify=False,  # Skip SSL verification
+                    allow_redirects=True
+                )
+                logger.warning("Using unverified SSL connection to Lightpanda API")
             
             if response.status_code == 200:
                 result = response.json()
@@ -83,6 +111,15 @@ class LightpandaScraper:
                 logger.error(f"Lightpanda API error: {response.status_code} - {response.text}")
                 return self.scrape_direct(url)
                 
+        except requests.exceptions.SSLError as e:
+            logger.error(f"SSL error with Lightpanda API: {e}")
+            return self.scrape_direct(url)
+        except requests.exceptions.ConnectTimeout as e:
+            logger.error(f"Connection timeout to Lightpanda API: {e}")
+            return self.scrape_direct(url)  
+        except requests.exceptions.ReadTimeout as e:
+            logger.error(f"Read timeout from Lightpanda API: {e}")
+            return self.scrape_direct(url)
         except requests.exceptions.RequestException as e:
             logger.error(f"Lightpanda API request failed: {e}")
             return self.scrape_direct(url)
@@ -92,13 +129,14 @@ class LightpandaScraper:
     
     def test_lightpanda_connection(self) -> bool:
         """
-        Test if Lightpanda API is accessible
+        Test if Lightpanda API is accessible with SSL troubleshooting
         """
         if not self.api_key or not self.api_endpoint:
+            logger.info("Missing Lightpanda credentials")
             return False
             
         try:
-            # Test with a simple URL
+            # Test with a simple URL and shorter timeout
             test_payload = {
                 'url': 'https://httpbin.org/html',
                 'render_js': False
@@ -109,19 +147,103 @@ class LightpandaScraper:
                 'Content-Type': 'application/json'
             }
             
-            response = requests.post(
-                self.api_endpoint,
-                json=test_payload,
-                headers=headers,
-                timeout=10
-            )
+            # Try with different SSL configurations
+            session = requests.Session()
+            session.headers.update(headers)
             
-            return response.status_code == 200
+            # First try: Normal SSL
+            try:
+                response = session.post(
+                    self.api_endpoint,
+                    json=test_payload,
+                    timeout=(5, 10),
+                    verify=True
+                )
+                if response.status_code == 200:
+                    logger.info("Lightpanda connection test successful")
+                    return True
+            except requests.exceptions.SSLError:
+                logger.warning("SSL verification failed, trying without SSL verification")
+                # Second try: Skip SSL verification (not recommended for production)
+                try:
+                    import urllib3
+                    urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+                    response = session.post(
+                        self.api_endpoint,
+                        json=test_payload,
+                        timeout=(5, 10),
+                        verify=False
+                    )
+                    if response.status_code == 200:
+                        logger.warning("Lightpanda connection successful but SSL verification disabled")
+                        return True
+                except Exception as e:
+                    logger.error(f"Connection failed even without SSL verification: {e}")
+            
+            return False
             
         except Exception as e:
-            logger.debug(f"Lightpanda connection test failed: {e}")
+            logger.error(f"Lightpanda connection test failed: {e}")
             return False
     
+    def diagnose_network_issues(self):
+        """
+        Diagnose network connectivity issues with LightPanda API
+        """
+        import socket
+        import ssl
+        from urllib.parse import urlparse
+        
+        if not self.api_endpoint:
+            logger.error("No Lightpanda API endpoint configured")
+            return
+        
+        try:
+            parsed_url = urlparse(self.api_endpoint)
+            hostname = parsed_url.hostname
+            port = parsed_url.port or (443 if parsed_url.scheme == 'https' else 80)
+            
+            logger.info(f"Diagnosing connection to {hostname}:{port}")
+            
+            # Test DNS resolution
+            try:
+                ip = socket.gethostbyname(hostname)
+                logger.info(f"DNS resolution successful: {hostname} -> {ip}")
+            except socket.gaierror as e:
+                logger.error(f"DNS resolution failed: {e}")
+                return
+            
+            # Test TCP connection
+            try:
+                sock = socket.create_connection((hostname, port), timeout=10)
+                logger.info(f"TCP connection successful to {hostname}:{port}")
+                sock.close()
+            except socket.timeout:
+                logger.error(f"TCP connection timeout to {hostname}:{port}")
+                return
+            except Exception as e:
+                logger.error(f"TCP connection failed: {e}")
+                return
+            
+            # Test SSL handshake if HTTPS
+            if parsed_url.scheme == 'https':
+                try:
+                    context = ssl.create_default_context()
+                    with socket.create_connection((hostname, port), timeout=10) as sock:
+                        with context.wrap_socket(sock, server_hostname=hostname) as ssock:
+                            logger.info(f"SSL handshake successful to {hostname}")
+                            logger.info(f"SSL version: {ssock.version()}")
+                            logger.info(f"SSL cipher: {ssock.cipher()}")
+                except ssl.SSLError as e:
+                    logger.error(f"SSL handshake failed: {e}")
+                except socket.timeout:
+                    logger.error(f"SSL handshake timeout to {hostname}")
+                except Exception as e:
+                    logger.error(f"SSL connection error: {e}")
+                    
+        except Exception as e:
+            logger.error(f"Network diagnostics failed: {e}")
+
     def scrape_direct(self, url: str) -> str:
         """
         Direct scraping fallback using requests and BeautifulSoup
@@ -265,7 +387,7 @@ def parse_travel_query_with_ai(query: str) -> Dict[str, str]:
     
     try:
         llm = ChatOpenAI(
-            model="gpt-3.5-turbo",
+            model="gpt-4.1-nano",
             temperature=0,
             openai_api_key=os.getenv('OPENAI_API_KEY')
         )
@@ -813,7 +935,7 @@ def parse_hotel_query_with_ai(query: str) -> str:
     
     try:
         llm = ChatOpenAI(
-            model="gpt-3.5-turbo",
+            model="gpt-4.1-nano",
             temperature=0,
             openai_api_key=os.getenv('OPENAI_API_KEY')
         )

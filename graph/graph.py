@@ -16,8 +16,9 @@ from langgraph.types import Command
 from langchain import hub
 from langchain.agents import AgentExecutor, create_react_agent
 from tools import search_hotels, search_flights
-
+from data_gatherer import DataGatherer
 from langchain_core.tools import BaseTool
+from graph.utils import all_info_provided, inject_current_information
 
 from langchain_core.runnables import RunnablePassthrough, RunnableLambda
 
@@ -224,7 +225,7 @@ class GraphBuilder():
         logger.debug("Starting ask more info TTS model=%s", voice_model)
 
     
-        current_info = self._inject_current_information(state)
+        current_info = inject_current_information(state)
         prompt = prompt.replace("{full_info_set}", self.FULL_INFO_SET)
         prompt = prompt.replace("{current_info}", current_info)
 
@@ -292,7 +293,7 @@ class GraphBuilder():
         into state and also stored raw under 'append_info_raw'.
         """
         prompt = self.prompts.get("append_info_to_state")
-        prompt = prompt.replace("{current_info}", self._inject_current_information(state))
+        prompt = prompt.replace("{current_info}", inject_current_information(state))
         prompt = prompt.replace("{full_info_set}", self.FULL_INFO_SET)
 
         messages = state.get("messages")
@@ -360,7 +361,7 @@ class GraphBuilder():
                 if key in parsed and parsed[key] not in (None, ""):
                     state[key] = parsed[key]
 
-            if not self._all_info_provided(state):
+            if not all_info_provided(state):
                 return Command(goto="ask_more_info", update=state)
             return Command(goto="__end__", update=state)
         except Exception as e:
@@ -393,20 +394,6 @@ class GraphBuilder():
         
         return Command(goto="__end__", update=state)
 
-    async def data_gatherer(self, state:State):
-        model = openai.OpenAI(model="gpt-4.1-nano", temperature=0)
-        prompt = self.prompts.get("data_gatherer", "")
-
-        prompt = prompt.replace
-
-        agent = create_react_agent(
-            llm=model,
-            tools=self.tools,
-            prompt=prompt
-        )
-
-
-
     def _format_messages(self, messages):
 
         output = []
@@ -418,29 +405,7 @@ class GraphBuilder():
                 output.append({"role": "assistant", "content": msg.content})
         return output
 
-    def _all_info_provided(self, state:State):
-        required_keys = ["destination", "people_number", "interests", "travel_dates", "budget", "activities"]
-        return all(key in state for key in required_keys)
-        # return True
-
-    def _inject_current_information(self, state: State) -> str:
-        """Inject current information from the state into the prompt."""
-        current_info = ""
-        # Appends all key features inside State as a string to be provided to the LLM
-
-        if state.get("destination"):
-            current_info += f"Travel destination: {state['destination']}\n"
-        if state.get("people_number"):
-            current_info += f"Number of people traveling: {state['people_number']}\n"
-        if state.get("interests"):
-            current_info += f"User's interests: {state['interests']}\n"
-        if state.get("travel_dates"):
-            current_info += f"Preferred travel dates: {state['travel_dates']}\n"
-        if state.get("budget"):
-            current_info += f"User's budget: {state['budget']}\n"
-        if state.get("activities"):
-            current_info += f"User's preferred activities: {state['activities']}\n"
-        return current_info
+    
 
     # --- New public method for constructing a streaming voice chain ---
     def build_chain(

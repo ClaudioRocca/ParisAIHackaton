@@ -16,6 +16,22 @@
             "env": {
                 "PYTHONPATH": "${workspaceFolder}"
             },
+        },
+        {
+            "name": "Data gatherer",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "streamlit",
+            "justMyCode": false,
+            "args": [
+                "run",
+                "${workspaceFolder}/data_gather_chat.py",
+                "--server.port",
+                "8501"
+            ],
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}"
+            },
         }
     ]
 }
