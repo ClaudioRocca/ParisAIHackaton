@@ -64,7 +64,7 @@ class LightpandaScraper:
                 'Content-Type': 'application/json'
             }
             
-            logger.info(f"Sending request to Lightpanda API: {self.api_endpoint}")
+            logger.info(f"Attempting to connect to Lightpanda API: {self.api_endpoint}")
             
             # Create a session with better SSL configuration
             session = requests.Session()
@@ -76,26 +76,15 @@ class LightpandaScraper:
                 response = session.post(
                     self.api_endpoint,
                     json=payload,
-                    timeout=(10, 30),  # (connect_timeout, read_timeout)
+                    timeout=(5, 15),  # Shorter timeouts to fail faster
                     verify=True,
                     allow_redirects=True
                 )
                 
-            except (requests.exceptions.SSLError, requests.exceptions.ConnectTimeout) as e:
-                logger.warning(f"SSL/timeout error, trying alternative approach: {e}")
-                
-                # Second attempt: Disable SSL verification as fallback
-                import urllib3
-                urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-                
-                response = session.post(
-                    self.api_endpoint,
-                    json=payload,
-                    timeout=(15, 45),  # Longer timeouts
-                    verify=False,  # Skip SSL verification
-                    allow_redirects=True
-                )
-                logger.warning("Using unverified SSL connection to Lightpanda API")
+            except (requests.exceptions.SSLError, requests.exceptions.ConnectTimeout, requests.exceptions.ConnectionError) as e:
+                logger.warning(f"SSL/connection error with Lightpanda API: {e}")
+                logger.info("Falling back to direct scraping immediately")
+                return self.scrape_direct(url)
             
             if response.status_code == 200:
                 result = response.json()
@@ -111,20 +100,9 @@ class LightpandaScraper:
                 logger.error(f"Lightpanda API error: {response.status_code} - {response.text}")
                 return self.scrape_direct(url)
                 
-        except requests.exceptions.SSLError as e:
-            logger.error(f"SSL error with Lightpanda API: {e}")
-            return self.scrape_direct(url)
-        except requests.exceptions.ConnectTimeout as e:
-            logger.error(f"Connection timeout to Lightpanda API: {e}")
-            return self.scrape_direct(url)  
-        except requests.exceptions.ReadTimeout as e:
-            logger.error(f"Read timeout from Lightpanda API: {e}")
-            return self.scrape_direct(url)
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Lightpanda API request failed: {e}")
-            return self.scrape_direct(url)
         except Exception as e:
-            logger.error(f"Unexpected error with Lightpanda API: {e}")
+            logger.error(f"Lightpanda API completely failed: {e}")
+            logger.info("Using direct scraping as fallback")
             return self.scrape_direct(url)
     
     def test_lightpanda_connection(self) -> bool:
@@ -290,6 +268,15 @@ class LightpandaScraper:
             logger.error(f"Unexpected error scraping {url}: {e}")
             return ""
 
+    def scrape_with_selenium(self, url: str) -> str:
+        """
+        Selenium-based scraping for JavaScript-heavy sites (fallback method)
+        Note: This is a placeholder - Selenium requires additional setup
+        """
+        logger.warning("Selenium scraping requested but not fully implemented")
+        logger.info("Falling back to direct scraping instead")
+        return self.scrape_direct(url)
+
 # Initialize scraper
 scraper = LightpandaScraper()
 
@@ -387,7 +374,7 @@ def parse_travel_query_with_ai(query: str) -> Dict[str, str]:
     
     try:
         llm = ChatOpenAI(
-            model="gpt-4.1-nano",
+            model="gpt-3.5-turbo",
             temperature=0,
             openai_api_key=os.getenv('OPENAI_API_KEY')
         )
@@ -935,7 +922,7 @@ def parse_hotel_query_with_ai(query: str) -> str:
     
     try:
         llm = ChatOpenAI(
-            model="gpt-4.1-nano",
+            model="gpt-3.5-turbo",
             temperature=0,
             openai_api_key=os.getenv('OPENAI_API_KEY')
         )
