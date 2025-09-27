@@ -20,4 +20,4 @@ class State(MessagesState):
     interests: List[str] = Field(default_factory=list, description="User's interests related to the trip.")
     travel_dates: Optional[List[str]] = Field(default=None, description="User's preferred travel dates.")
     budget: Optional[float] = Field(default=None, description="User's budget for the trip.")
-    activities: Optional[List[str]] = Field(default=None, description="User's preferred activities during the trip.")
+    activities: Optional[List[str]] = Field(default=None, description="Specific activities the user is interested in (e.g. while going to London, user could be interested in visiting British Museum, or attend a Chelsea Football game).")

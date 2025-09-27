@@ -13,6 +13,9 @@ from langchain_core.documents import Document as LCDocument
 from langchain_core.retrievers import BaseRetriever
 from langgraph.graph import StateGraph, END, START
 from langgraph.types import Command
+from langchain import hub
+from langchain.agents import AgentExecutor, create_react_agent
+from tools import search_hotels, search_flights
 
 from langchain_core.tools import BaseTool
 
@@ -45,10 +48,17 @@ class GraphBuilder():
     def __init__(self):
         self.builder = None
         self.prompts_path = BASE_DIR / "prompts.yaml"
+        self.tools = [search_hotels, search_flights]
         self.prompts = yaml.safe_load(self.prompts_path.read_text())
         # Single shared async OpenAI client for all LLM (voice) calls
         self._openai_client: AsyncOpenAI = AsyncOpenAI()
-        self.FULL_INFO_SET = "- Clear Destination(either city or a region)\n- Number of People Traveling\n- User's Interests\n- Preferred Travel Dates\n- User's Budget (don't ask a specific amount, ask for low, medium or high)\n- User's Preferred Activities (Cultural events, food, nightlife, sport events...\n\n"
+        self.FULL_INFO_SET = """- Clear Destination(either city or a region)
+                                - Number of People Traveling
+                                - User's Interests (interests like art, history, food, sports)
+                                - Preferred Travel Dates
+                                - User's Budget (ask for a maximum estimated total cost per person)
+                                - User's Preferred Activities (specific activities such as going to a fine restaurant, or visiting a specific museum)
+                                """
 
     # --- Improved microphone capture with RMS level + enhanced silence detection ---
     async def _capture_microphone(
@@ -57,7 +67,7 @@ class GraphBuilder():
         samplerate: int = 16000,
         channels: int = 1,
         silence_threshold: float = 0.012,  # lowered threshold
-        min_active_seconds: float = 0.6,    # ensure user speaks at least this long
+        min_active_seconds: float = 0.6,
         max_silence_seconds: float = 1.2,
     ) -> np.ndarray:
         """Record audio until trailing silence or max_duration. Returns float32 ndarray (-1..1)."""
@@ -157,7 +167,7 @@ class GraphBuilder():
 
     async def greeting_node(self, state: State):
         """Greeting node: TTS greeting -> record mic -> transcribe -> update state."""
-        prompt = self.prompts.get("greeting_prompt")
+        
         voice_model = os.getenv("OPENAI_VOICE_MODEL", "gpt-4o-mini-tts")
 
         logger.debug("Starting greeting TTS model=%s", voice_model)
@@ -226,7 +236,7 @@ class GraphBuilder():
             ]
 
             completion = await self._openai_client.chat.completions.create(  # type: ignore
-                model="gpt-4o-mini",
+                model="gpt-4.1-nano",
                 messages=chat_messages,
                 temperature=0.2
             )
@@ -245,8 +255,8 @@ class GraphBuilder():
                 instructions="\nBe synthetic and direct, use a welcoming tone. Acknowledge the fact that you received the information previously mentioned by the user",
                 response_format="pcm",
             ) as response:
-                # add response as an AIMessage to state messages
-                # state["messages"].append(AIMessage(content=response))
+                # Store the textual content (raw_content) instead of attempting to read audio bytes as text
+                state["messages"].append(AIMessage(content=raw_content))
                 await LocalAudioPlayer().play(response)
 
 
@@ -286,7 +296,7 @@ class GraphBuilder():
         prompt = prompt.replace("{full_info_set}", self.FULL_INFO_SET)
 
         messages = state.get("messages")
-        formatted_messages = self._format_messages(messages)
+        formatted_messages:list = self._format_messages(messages)
 
         # System instruction emphasizing JSON schema compliance
         system_instruction = (
@@ -305,7 +315,7 @@ class GraphBuilder():
                     "people_number": {"type": "integer", "minimum": 1},
                     "interests": {"type": "string", "description": "Comma-separated interests"},
                     "travel_dates": {"type": "string", "description": "Date range or specific dates"},
-                    "budget": {"type": "string", "description": "Budget level", "enum": ["low", "medium", "high"]},
+                    "budget": {"type": "string", "description": "Budget level per person"},
                     "activities": {"type": "string", "description": "Comma-separated activity categories"}
                 },
                 "required": [],
@@ -314,13 +324,14 @@ class GraphBuilder():
         }
 
         chat_messages = [
-            {"role": "system", "content": system_instruction + "\n" + prompt},
-            {"role": "user", "content": formatted_messages or ""},
+            {"role": "system", "content": system_instruction + "\n" + prompt}
         ]
+
+        chat_messages.extend(formatted_messages)    
 
         try:
             completion = await self._openai_client.chat.completions.create(  # type: ignore
-                model="gpt-4o-mini",
+                model="gpt-4.1-nano",
                 messages=chat_messages,
                 temperature=0.2,
                 response_format={
@@ -354,28 +365,63 @@ class GraphBuilder():
             return Command(goto="__end__", update=state)
         except Exception as e:
             logger.exception("Failed to append data to the state (structured): %s", e)
-            return Command(goto="__end__", update=state)
+            return Command(goto="final_message", update=state)
         
 
-    def _format_append_info_output(self, content: str) -> dict:
-        """Format the output removing ```json, ```, \n and \ from the string"""
-        content = content.replace("```json", "").replace("```", "").replace("\n", "").replace("\\", "")
-        return json.loads(content)
+    async def final_message(self, state:State):
+        voice_model = os.getenv("OPENAI_VOICE_MODEL", "gpt-4o-mini-tts")
+        try:
+            async with self._openai_client.audio.speech.with_streaming_response.create(
+                model=voice_model,
+                voice="coral",
+                input="Great! It's all set! I have all the information I need to generate an immersive and personalized travel experience!",
+                instructions="Be synthetic and direct using a welcoming tone.",
+                response_format="pcm",
+            ) as response:
+                await LocalAudioPlayer().play(response)
+        except Exception:
+            logger.exception("Greeting TTS failed")
+
+        logger.info("Listening for user input...")
+        audio = await self._capture_microphone()
+        if audio.size <= 1:
+            logger.warning("Audio empty or silent; skipping transcription")
+            user_input = ""
+        else:
+            wav_path = self._save_temp_wav(audio)
+            user_input = await self._transcribe_audio(wav_path)
+        
+        return Command(goto="__end__", update=state)
+
+    async def data_gatherer(self, state:State):
+        model = openai.OpenAI(model="gpt-4.1-nano", temperature=0)
+        prompt = self.prompts.get("data_gatherer", "")
+
+        prompt = prompt.replace
+
+        agent = create_react_agent(
+            llm=model,
+            tools=self.tools,
+            prompt=prompt
+        )
+
+
 
     def _format_messages(self, messages):
 
-        output = ""
+        output = []
 
         for msg in messages:
             if isinstance(msg, HumanMessage):
-                output += f"User: {msg.content}\n"
+                output.append({"role": "user", "content": msg.content})
             elif isinstance(msg, AIMessage):
-                output += f"AI: {msg.content}\n"
+                output.append({"role": "assistant", "content": msg.content})
         return output
 
     def _all_info_provided(self, state:State):
         required_keys = ["destination", "people_number", "interests", "travel_dates", "budget", "activities"]
         return all(key in state for key in required_keys)
+        # return True
 
     def _inject_current_information(self, state: State) -> str:
         """Inject current information from the state into the prompt."""
@@ -457,10 +503,10 @@ class GraphBuilder():
         """Build the LangGraph workflow."""
         workflow = self.builder
 
-        # Add nodes
         workflow.add_node("greeting", self.greeting_node)
         workflow.add_node("ask_more_info", self.ask_more_info)
         workflow.add_node("append_info_to_state", self.append_info_to_state)
+        workflow.add_node("final_message", self.final_message)
 
         # Set entry point
         workflow.set_entry_point("greeting")
