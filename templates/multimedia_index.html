@@ -1,0 +1,2011 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gemini AI Multimedia Studio</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            position: relative;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 16px;
+        }
+
+        .status-indicators {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        .status-indicator.chat { background: #10b981; }
+        .status-indicator.video { background: #f59e0b; }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .tabs {
+            display: flex;
+            background: #f8fafc;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 15px 20px;
+            text-align: center;
+            cursor: pointer;
+            border: none;
+            background: none;
+            font-size: 16px;
+            font-weight: 500;
+            color: #6b7280;
+            transition: all 0.3s ease;
+        }
+
+        .tab.active {
+            background: white;
+            color: #4f46e5;
+            border-bottom: 3px solid #4f46e5;
+        }
+
+        .tab:hover:not(.active) {
+            background: #f3f4f6;
+            color: #374151;
+        }
+
+        .tab-content {
+            display: none;
+            padding: 20px;
+            min-height: 600px;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Chat Tab Styles */
+        .chat-messages {
+            height: 400px;
+            overflow-y: auto;
+            background: #f8fafc;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .message {
+            margin-bottom: 15px;
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+        }
+
+        .message.user {
+            flex-direction: row-reverse;
+        }
+
+        .message-avatar {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            color: white;
+        }
+
+        .message.user .message-avatar {
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+        }
+
+        .message.assistant .message-avatar {
+            background: linear-gradient(135deg, #10b981, #059669);
+        }
+
+        .message-content {
+            max-width: 70%;
+            padding: 12px 16px;
+            border-radius: 15px;
+            line-height: 1.4;
+        }
+
+        .message.user .message-content {
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            color: white;
+        }
+
+        .message.assistant .message-content {
+            background: white;
+            color: #374151;
+            border: 1px solid #e5e7eb;
+        }
+
+        /* Input Styles */
+        .input-section {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            border: 1px solid #e5e7eb;
+        }
+
+        .input-container {
+            display: flex;
+            gap: 10px;
+            align-items: flex-end;
+        }
+
+        .input-field {
+            flex: 1;
+            min-height: 45px;
+            max-height: 100px;
+            padding: 12px 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 20px;
+            font-size: 14px;
+            resize: none;
+            outline: none;
+            transition: border-color 0.3s ease;
+        }
+
+        .input-field:focus {
+            border-color: #4f46e5;
+        }
+
+        .btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #4f46e5, #7c3aed);
+            color: white;
+        }
+
+        .result-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+
+        /* Journey Creator Styles */
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        @keyframes fadeIn {
+            0% { 
+                opacity: 0; 
+                transform: translateY(20px); 
+            }
+            100% { 
+                opacity: 1; 
+                transform: translateY(0); 
+            }
+        }
+
+        .progress-container {
+            transition: all 0.3s ease;
+        }
+
+        .search-clause {
+            background: #f0f9ff;
+            border: 1px solid #0ea5e9;
+            border-radius: 6px;
+            padding: 8px 12px;
+            margin: 4px;
+            display: inline-block;
+            font-size: 13px;
+            color: #0c4a6e;
+        }
+
+        .journey-section {
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 15px 0;
+            background: #fafafa;
+        }
+
+        .journey-section h3 {
+            margin: 0 0 15px 0;
+            color: #374151;
+            font-size: 18px;
+        }
+
+        .btn-secondary {
+            border: 1px solid #d1d5db;
+        }
+
+        .btn-secondary:hover {
+            background: #e5e7eb;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Generation Tabs Styles */
+        .generation-form {
+            background: #f8fafc;
+            padding: 25px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #374151;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-input:focus {
+            border-color: #4f46e5;
+        }
+
+        .file-upload {
+            position: relative;
+            display: inline-block;
+            cursor: pointer;
+            width: 100%;
+        }
+
+        .file-upload input[type=file] {
+            position: absolute;
+            left: -9999px;
+        }
+
+        .file-upload-label {
+            display: block;
+            padding: 12px 16px;
+            border: 2px dashed #d1d5db;
+            border-radius: 10px;
+            text-align: center;
+            color: #6b7280;
+            transition: all 0.3s ease;
+        }
+
+        .file-upload:hover .file-upload-label {
+            border-color: #4f46e5;
+            color: #4f46e5;
+        }
+
+        /* Results Display */
+        .results {
+            margin-top: 20px;
+        }
+
+        .result-item {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 15px;
+            border: 1px solid #e5e7eb;
+        }
+
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .result-title {
+            font-weight: 600;
+            color: #374151;
+        }
+
+        .result-prompt {
+            font-size: 12px;
+            color: #6b7280;
+            font-style: italic;
+            margin-bottom: 10px;
+        }
+
+        .media-container {
+            text-align: center;
+        }
+
+        .generated-image {
+            max-width: 100%;
+            height: auto;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .generated-video {
+            width: 100%;
+            max-width: 600px;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Loading States */
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 40px;
+            color: #6b7280;
+        }
+
+        .loading-spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid #e5e7eb;
+            border-top: 2px solid #4f46e5;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error-message {
+            background: #fef2f2;
+            color: #dc2626;
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid #fecaca;
+            margin: 10px 0;
+        }
+
+        .success-message {
+            background: #f0fdf4;
+            color: #16a34a;
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid #bbf7d0;
+            margin: 10px 0;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .container {
+                margin: 10px;
+                border-radius: 15px;
+            }
+            
+            .tabs {
+                flex-wrap: wrap;
+            }
+            
+            .tab {
+                flex: 1 1 50%;
+                font-size: 14px;
+            }
+            
+            .input-container {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .message-content {
+                max-width: 85%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="status-indicators">
+                <div class="status-indicator chat" id="chatStatus" title="Chat Status"></div>
+                <div class="status-indicator video" id="videoStatus" title="Video Generation Status"></div>
+            </div>
+            <h1>🎬 Gemini AI Multimedia Studio</h1>
+            <p>Chat • Generate Images • Create Videos • Upload & Animate • AI Workflows • Journey Creator</p>
+        </div>
+        
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('chat')">💬 Chat</button>
+            <button class="tab" onclick="switchTab('image')">🎨 Generate Image</button>
+            <button class="tab" onclick="switchTab('video')">🎬 Generate Video</button>
+            <button class="tab" onclick="switchTab('animate')">🎭 Animate Image</button>
+            <button class="tab-btn" onclick="showTab('upload')">🖼️ Generate from Images</button>
+            <button class="tab" onclick="switchTab('journey')">🌍 Create Journey</button>
+        </div>
+
+        <!-- Chat Tab -->
+        <div id="chat" class="tab-content active">
+            <div class="chat-messages" id="chatMessages">
+                <div class="message assistant">
+                    <div class="message-avatar">🤖</div>
+                    <div class="message-content">
+                        Hello! I'm Gemini AI. I can help you with text conversations, generate images, create videos, and more. What would you like to do today?
+                    </div>
+                </div>
+            </div>
+            
+            <div class="input-section">
+                <div class="input-container">
+                    <textarea class="input-field" id="chatInput" placeholder="Type your message here..." rows="1"></textarea>
+                    <button class="btn btn-primary" id="chatSendBtn" onclick="sendChatMessage()">Send</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Image Generation Tab -->
+        <div id="image" class="tab-content">
+            <div class="generation-form">
+                <div class="form-group">
+                    <label class="form-label">Image Prompt</label>
+                    <textarea class="form-input" id="imagePrompt" placeholder="Describe the image you want to generate..." rows="3"></textarea>
+                </div>
+                <button class="btn btn-primary" onclick="generateImage()">🎨 Generate Image</button>
+            </div>
+            
+            <div class="results" id="imageResults"></div>
+        </div>
+
+        <!-- Video Generation Tab -->
+        <div id="video" class="tab-content">
+            <div class="generation-form">
+                <div class="form-group">
+                    <label class="form-label">Video Prompt</label>
+                    <textarea class="form-input" id="videoPrompt" placeholder="Describe the video you want to generate..." rows="3"></textarea>
+                </div>
+                <button class="btn btn-primary" onclick="generateVideo()">🎬 Generate Video</button>
+            </div>
+            
+            <div class="results" id="videoResults"></div>
+        </div>
+
+        <!-- Animate Image Tab -->
+        <div id="animate" class="tab-content">
+            <div class="generation-form">
+                <div class="form-group">
+                    <label class="form-label">Upload Image</label>
+                    <div class="file-upload">
+                        <input type="file" id="animateImageFile" accept="image/*">
+                        <label for="animateImageFile" class="file-upload-label">
+                            📁 Click to upload an image or drag and drop
+                        </label>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Animation Prompt</label>
+                    <textarea class="form-input" id="animatePrompt" placeholder="Describe how you want to animate this image..." rows="3"></textarea>
+                </div>
+                <button class="btn btn-primary" onclick="animateImage()">🎭 Animate Image</button>
+            </div>
+            
+            <div class="results" id="animateResults"></div>
+        </div>
+
+        <!-- Full Workflow Tab -->
+        <div id="workflow" class="tab-content">
+            <div class="generation-form">
+                <div class="form-group">
+                    <label class="form-label">Image Generation Prompt</label>
+                    <textarea class="form-input" id="workflowImagePrompt" placeholder="Describe the image to generate first..." rows="2"></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Video Animation Prompt (optional)</label>
+                    <textarea class="form-input" id="workflowVideoPrompt" placeholder="Describe how to animate the image (leave empty to use image prompt)..." rows="2"></textarea>
+                </div>
+                <button class="btn btn-primary" onclick="runWorkflow()">⚡ Generate Image → Video</button>
+            </div>
+            
+            <div class="results" id="workflowResults"></div>
+        </div>
+
+        <!-- Upload Images Tab -->
+        <div id="upload" class="tab-content">
+            <div class="generation-form">
+                <div class="form-group">
+                    <label class="form-label">🖼️ Upload Images for Immersive Video Experience</label>
+                    <p style="color: #6b7280; margin-bottom: 15px; font-size: 14px;">
+                        Upload multiple images to create a single immersive video experience. AI will analyze all images and combine them with your prompt to generate one cohesive video. Supported formats: PNG, JPG, JPEG, GIF, BMP, WEBP (max 50MB each)
+                    </p>
+                    <input type="file" class="form-input" id="uploadImages" multiple accept="image/*" onchange="handleImageUpload(event)">
+                </div>
+                
+                <div id="imagePreviewContainer" style="display: none;">
+                    <div class="form-group">
+                        <label class="form-label">📸 Selected Images</label>
+                        <div id="imagePreview"></div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">🎬 Animation Prompt (Optional)</label>
+                        <textarea class="form-input" id="globalAnimationPrompt" 
+                                  placeholder="Describe how to animate the images (leave empty for default animation)..." 
+                                  rows="2"></textarea>
+                    </div>
+                    
+                    <button class="btn btn-primary" onclick="generateVideosFromImages()" id="generateFromImagesBtn">
+                        🎬 Generate Videos from Images
+                    </button>
+                </div>
+            </div>
+            
+            <div class="results" id="uploadResults"></div>
+        </div>
+
+        <!-- Journey Creator Tab -->
+        <div id="journey" class="tab-content">
+            <div class="generation-form">
+                <div class="form-group">
+                    <label class="form-label">🌍 Create Your Perfect Journey</label>
+                    <p style="color: #6b7280; margin-bottom: 15px; font-size: 14px;">
+                        Enter a city and your interests to generate a personalized travel experience with web-sourced inspiration and immersive content.
+                    </p>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">🏙️ Destination City</label>
+                    <input type="text" class="form-input" id="journeyCity" 
+                           placeholder="e.g., Paris, Tokyo, New York..." 
+                           style="margin-bottom: 15px;">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">✨ Your Interests & Atmosphere</label>
+                    <textarea class="form-input" id="journeyInterests" 
+                              placeholder="e.g., Autumn atmosphere, art museums, cozy cafes, street photography, local cuisine, historic architecture..." 
+                              rows="3" style="margin-bottom: 15px;"></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">🎯 Experience Type</label>
+                    <select class="form-input" id="experienceType" style="margin-bottom: 15px;">
+                        <option value="immersive_video">🎬 Immersive Video Journey</option>
+                        <option value="photo_collection">📸 Curated Photo Collection</option>
+                        <option value="mixed_media">🎭 Mixed Media Experience</option>
+                        <option value="search_insights">🔍 Travel Insights & Tips</option>
+                    </select>
+                </div>
+                
+                <button class="btn btn-primary" onclick="createJourney()" id="createJourneyBtn">
+                    🚀 Craft My Journey
+                </button>
+            </div>
+            
+            <!-- Progress Messages -->
+            <div id="journeyProgress" style="display: none; margin-top: 20px;">
+                <div class="progress-container" style="background: #f3f4f6; border-radius: 8px; padding: 20px; text-align: center;">
+                    <div class="progress-spinner" style="display: inline-block; width: 20px; height: 20px; border: 2px solid #e5e7eb; border-top: 2px solid #3b82f6; border-radius: 50%; animation: spin 1s linear infinite; margin-right: 10px;"></div>
+                    <div id="progressMessage" style="color: #374151; font-weight: 500;">
+                        Crafting your journey...
+                    </div>
+                    <div id="progressDetails" style="color: #6b7280; font-size: 14px; margin-top: 5px;">
+                        Initializing travel experience generator
+                    </div>
+                </div>
+            </div>
+            
+            <div class="results" id="journeyResults"></div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let currentTab = 'chat';
+
+        // Tab switching
+        function switchTab(tabName) {
+            // Hide all tab contents
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            // Remove active class from all tabs
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Show selected tab content
+            document.getElementById(tabName).classList.add('active');
+            
+            // Add active class to selected tab
+            event.target.classList.add('active');
+            
+            currentTab = tabName;
+        }
+
+        // Auto-resize textarea
+        function autoResize(textarea) {
+            textarea.style.height = 'auto';
+            textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px';
+        }
+
+        // Setup auto-resize for textareas
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('textarea').forEach(textarea => {
+                textarea.addEventListener('input', function() {
+                    autoResize(this);
+                });
+            });
+            
+            // Setup Enter key for chat
+            document.getElementById('chatInput').addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendChatMessage();
+                }
+            });
+            
+            checkStatus();
+        });
+
+        // Status checking
+        async function checkStatus() {
+            try {
+                const response = await fetch('/api/status');
+                const data = await response.json();
+                
+                const chatStatus = document.getElementById('chatStatus');
+                const videoStatus = document.getElementById('videoStatus');
+                
+                if (data.details.gemini_ready) {
+                    chatStatus.style.background = '#10b981';
+                    chatStatus.title = 'Chat Ready';
+                } else {
+                    chatStatus.style.background = '#ef4444';
+                    chatStatus.title = 'Chat Error';
+                }
+                
+                if (data.details.video_ready) {
+                    videoStatus.style.background = '#10b981';
+                    videoStatus.title = 'Video Generation Ready';
+                } else {
+                    videoStatus.style.background = '#ef4444';
+                    videoStatus.title = 'Video Generation Error';
+                }
+            } catch (error) {
+                console.error('Status check failed:', error);
+            }
+        }
+
+        // Chat functions
+        function addChatMessage(content, isUser = false, isError = false) {
+            const messagesContainer = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isUser ? 'user' : 'assistant'}`;
+            
+            if (isError) {
+                messageDiv.innerHTML = `<div class="error-message">❌ ${content}</div>`;
+            } else {
+                messageDiv.innerHTML = `
+                    <div class="message-avatar">${isUser ? '👤' : '🤖'}</div>
+                    <div class="message-content">${content}</div>
+                `;
+            }
+            
+            messagesContainer.appendChild(messageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        async function sendChatMessage() {
+            const input = document.getElementById('chatInput');
+            const sendBtn = document.getElementById('chatSendBtn');
+            const message = input.value.trim();
+            
+            if (!message) return;
+            
+            addChatMessage(message, true);
+            input.value = '';
+            autoResize(input);
+            
+            sendBtn.disabled = true;
+            sendBtn.textContent = 'Sending...';
+            
+            try {
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: message })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    addChatMessage(data.response);
+                } else {
+                    addChatMessage(data.error || 'An error occurred', false, true);
+                }
+            } catch (error) {
+                addChatMessage('Network error. Please try again.', false, true);
+            } finally {
+                sendBtn.disabled = false;
+                sendBtn.textContent = 'Send';
+            }
+        }
+
+        // Image generation
+        async function generateImage() {
+            const prompt = document.getElementById('imagePrompt').value.trim();
+            const resultsContainer = document.getElementById('imageResults');
+            
+            if (!prompt) {
+                showError(resultsContainer, 'Please enter an image prompt');
+                return;
+            }
+            
+            showLoading(resultsContainer, 'Generating image...');
+            
+            try {
+                const response = await fetch('/api/generate-image', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ prompt: prompt })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showImageResult(resultsContainer, data);
+                } else {
+                    showError(resultsContainer, data.error || 'Failed to generate image');
+                }
+            } catch (error) {
+                showError(resultsContainer, 'Network error. Please try again.');
+            }
+        }
+
+        // Video generation
+        async function generateVideo() {
+            const prompt = document.getElementById('videoPrompt').value.trim();
+            const resultsContainer = document.getElementById('videoResults');
+            
+            if (!prompt) {
+                showError(resultsContainer, 'Please enter a video prompt');
+                return;
+            }
+            
+            showLoading(resultsContainer, 'Generating video... This may take several minutes.');
+            
+            try {
+                const response = await fetch('/api/generate-video', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ prompt: prompt })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showVideoResult(resultsContainer, data);
+                } else {
+                    showError(resultsContainer, data.error || 'Failed to generate video');
+                }
+            } catch (error) {
+                showError(resultsContainer, 'Network error. Please try again.');
+            }
+        }
+
+        // Animate image
+        async function animateImage() {
+            const fileInput = document.getElementById('animateImageFile');
+            const prompt = document.getElementById('animatePrompt').value.trim();
+            const resultsContainer = document.getElementById('animateResults');
+            
+            if (!fileInput.files[0]) {
+                showError(resultsContainer, 'Please upload an image file');
+                return;
+            }
+            
+            if (!prompt) {
+                showError(resultsContainer, 'Please enter an animation prompt');
+                return;
+            }
+            
+            showLoading(resultsContainer, 'Animating image... This may take several minutes.');
+            
+            const formData = new FormData();
+            formData.append('image', fileInput.files[0]);
+            formData.append('prompt', prompt);
+            
+            try {
+                const response = await fetch('/api/generate-video-from-image', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showVideoResult(resultsContainer, data);
+                } else {
+                    showError(resultsContainer, data.error || 'Failed to animate image');
+                }
+            } catch (error) {
+                showError(resultsContainer, 'Network error. Please try again.');
+            }
+        }
+
+        // Full workflow
+        async function runWorkflow() {
+            const imagePrompt = document.getElementById('workflowImagePrompt').value.trim();
+            const videoPrompt = document.getElementById('workflowVideoPrompt').value.trim();
+            const resultsContainer = document.getElementById('workflowResults');
+            
+            if (!imagePrompt) {
+                showError(resultsContainer, 'Please enter an image prompt');
+                return;
+            }
+            
+            showLoading(resultsContainer, 'Running full workflow... Generating image then video. This may take several minutes.');
+            
+            try {
+                const response = await fetch('/api/image-to-video-workflow', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        image_prompt: imagePrompt,
+                        video_prompt: videoPrompt
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showWorkflowResult(resultsContainer, data);
+                } else {
+                    showError(resultsContainer, data.error || 'Failed to complete workflow');
+                }
+            } catch (error) {
+                showError(resultsContainer, 'Network error. Please try again.');
+            }
+        }
+
+        // Result display functions
+        function showLoading(container, message) {
+            container.innerHTML = `
+                <div class="loading">
+                    <div class="loading-spinner"></div>
+                    <span>${message}</span>
+                </div>
+            `;
+        }
+
+        function showError(container, message) {
+            container.innerHTML = `<div class="error-message">${message}</div>`;
+        }
+
+        function showImageResult(container, data) {
+            container.innerHTML = `
+                <div class="result-item">
+                    <div class="result-header">
+                        <div class="result-title">🎨 Generated Image</div>
+                    </div>
+                    <div class="result-prompt">"${data.prompt}"</div>
+                    <div class="media-container">
+                        <img src="${data.image_url}" alt="Generated Image" class="generated-image">
+                    </div>
+                </div>
+            `;
+        }
+
+        function showVideoResult(container, data) {
+            container.innerHTML = `
+                <div class="result-item">
+                    <div class="result-header">
+                        <div class="result-title">🎬 Generated Video</div>
+                    </div>
+                    <div class="result-prompt">"${data.prompt}"</div>
+                    <div class="media-container">
+                        <video controls class="generated-video">
+                            <source src="${data.video_url}" type="video/mp4">
+                            Your browser does not support the video tag.
+                        </video>
+                    </div>
+                </div>
+            `;
+        }
+
+        function showWorkflowResult(container, data) {
+            container.innerHTML = `
+                <div class="result-item">
+                    <div class="result-header">
+                        <div class="result-title">⚡ Full Workflow Complete</div>
+                    </div>
+                    <div class="result-prompt">Image: "${data.image_prompt}"</div>
+                    <div class="result-prompt">Video: "${data.video_prompt}"</div>
+                    <div class="media-container">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                            <div>
+                                <h4>Generated Image</h4>
+                                <img src="${data.image_url}" alt="Generated Image" class="generated-image" style="max-height: 200px;">
+                            </div>
+                            <div>
+                                <h4>Generated Video</h4>
+                                <video controls class="generated-video" style="max-height: 200px;">
+                                    <source src="${data.video_url}" type="video/mp4">
+                                </video>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Image upload handling
+        let uploadedImages = [];
+
+        function handleImageUpload(event) {
+            const files = Array.from(event.target.files);
+            uploadedImages = files;
+            
+            if (files.length === 0) {
+                document.getElementById('imagePreviewContainer').style.display = 'none';
+                return;
+            }
+
+            // Show preview container
+            document.getElementById('imagePreviewContainer').style.display = 'block';
+            
+            // Create image previews
+            const previewContainer = document.getElementById('imagePreview');
+            previewContainer.innerHTML = '';
+            
+            files.forEach((file, index) => {
+                const imagePreview = document.createElement('div');
+                imagePreview.style.cssText = `
+                    display: inline-block;
+                    border: 1px solid #e5e7eb;
+                    border-radius: 8px;
+                    padding: 10px;
+                    margin: 5px;
+                    background: #f9fafb;
+                    text-align: center;
+                    max-width: 150px;
+                `;
+                
+                // Create image preview
+                const img = document.createElement('img');
+                img.style.cssText = `
+                    max-width: 120px;
+                    max-height: 120px;
+                    border-radius: 8px;
+                    margin-bottom: 5px;
+                    object-fit: cover;
+                `;
+                
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    img.src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+                
+                // Create file info
+                const fileInfo = document.createElement('div');
+                fileInfo.style.cssText = `
+                    font-size: 11px;
+                    color: #6b7280;
+                    word-break: break-word;
+                `;
+                fileInfo.textContent = `${file.name} (${(file.size / 1024 / 1024).toFixed(1)} MB)`;
+                
+                imagePreview.appendChild(img);
+                imagePreview.appendChild(fileInfo);
+                previewContainer.appendChild(imagePreview);
+            });
+        }
+
+        async function generateVideosFromImages() {
+            const button = document.getElementById('generateFromImagesBtn');
+            const resultsContainer = document.getElementById('uploadResults');
+            
+            if (uploadedImages.length === 0) {
+                alert('Please select images first');
+                return;
+            }
+
+            // Get the global prompt (optional)
+            const globalPrompt = document.getElementById('globalAnimationPrompt').value.trim();
+            const defaultPrompt = "Create a smooth animation from this image";
+            const promptToUse = globalPrompt || defaultPrompt;
+            
+            // Use the same prompt for all images
+            const prompts = new Array(uploadedImages.length).fill(promptToUse);
+
+            // Disable button and show loading
+            button.disabled = true;
+            button.textContent = '🔄 Generating Videos...';
+            
+            resultsContainer.innerHTML = `
+                <div class="loading">
+                    <div class="loading-spinner"></div>
+                    <div class="loading-text">Processing ${uploadedImages.length} images...</div>
+                </div>
+            `;
+
+            try {
+                // Create FormData
+                const formData = new FormData();
+                
+                // Add images
+                uploadedImages.forEach((file) => {
+                    formData.append('images', file);
+                });
+                
+                // Add the global prompt
+                formData.append('global_prompt', promptToUse);
+
+                const response = await fetch('/api/upload-images-for-video', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showUploadResults(resultsContainer, data);
+                } else {
+                    throw new Error(data.error || 'Unknown error occurred');
+                }
+
+            } catch (error) {
+                resultsContainer.innerHTML = `
+                    <div class="error">
+                        <div class="error-icon">❌</div>
+                        <div class="error-text">Error: ${error.message}</div>
+                    </div>
+                `;
+            } finally {
+                // Re-enable button
+                button.disabled = false;
+                button.textContent = '🎬 Generate Videos from Images';
+            }
+        }
+
+        function showUploadResults(container, data) {
+            // Check if it's the new immersive single video format
+            if (data.type === 'immersive_single_video') {
+                container.innerHTML = `
+                    <div class="result-item">
+                        <div class="result-header">
+                            <div class="result-title">🎬 Immersive Video Experience Created</div>
+                        </div>
+                        <div class="result-prompt">
+                            🎯 Prompt: "${data.prompt}"<br>
+                            📸 Images Analyzed: ${data.images_processed}<br>
+                            🎨 Generated: Single immersive video combining all images
+                        </div>
+                        <div class="media-container">
+                            <div style="border: 1px solid #e5e7eb; border-radius: 8px; padding: 20px; background: #f0fdf4; text-align: center;">
+                                <div style="display: flex; align-items: center; justify-content: center; margin-bottom: 15px;">
+                                    <span style="color: #16a34a; margin-right: 8px; font-size: 18px;">✅</span>
+                                    <strong style="color: #16a34a;">Immersive Video Generated Successfully</strong>
+                                </div>
+                                <div style="color: #6b7280; margin-bottom: 15px; font-size: 14px;">
+                                    AI analyzed ${data.images_processed} images and created a cohesive immersive experience
+                                </div>
+                                <video controls style="max-width: 100%; max-height: 400px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
+                                    <source src="${data.video_url}" type="video/mp4">
+                                    Your browser does not support the video tag.
+                                </video>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+            
+            // Original batch results format (for backward compatibility)
+            const { results, summary } = data;
+            
+            let resultsHTML = `
+                <div class="result-item">
+                    <div class="result-header">
+                        <div class="result-title">🖼️ Batch Video Generation Results</div>
+                    </div>
+                    <div class="result-prompt">
+                        📊 Summary: ${summary.successful}/${summary.total} successful 
+                        ${summary.failed > 0 ? `(${summary.failed} failed)` : ''}
+                    </div>
+                    <div class="media-container">
+            `;
+            
+            results.forEach((result, index) => {
+                if (result.success) {
+                    resultsHTML += `
+                        <div style="border: 1px solid #e5e7eb; border-radius: 8px; padding: 15px; margin-bottom: 15px; background: #f0fdf4;">
+                            <div style="display: flex; align-items: center; margin-bottom: 10px;">
+                                <span style="color: #16a34a; margin-right: 8px;">✅</span>
+                                <strong>${result.image_name}</strong>
+                            </div>
+                            <div style="color: #6b7280; margin-bottom: 10px; font-size: 14px;">
+                                Prompt: "${result.prompt}"
+                            </div>
+                            <video controls style="max-width: 100%; max-height: 300px; border-radius: 8px;">
+                                <source src="${result.video_url}" type="video/mp4">
+                                Your browser does not support the video tag.
+                            </video>
+                        </div>
+                    `;
+                } else {
+                    resultsHTML += `
+                        <div style="border: 1px solid #e5e7eb; border-radius: 8px; padding: 15px; margin-bottom: 15px; background: #fef2f2;">
+                            <div style="display: flex; align-items: center; margin-bottom: 10px;">
+                                <span style="color: #dc2626; margin-right: 8px;">❌</span>
+                                <strong>${result.image_name}</strong>
+                            </div>
+                            <div style="color: #6b7280; margin-bottom: 10px; font-size: 14px;">
+                                Prompt: "${result.prompt}"
+                            </div>
+                            <div style="color: #dc2626; font-size: 14px;">
+                                Error: ${result.error}
+                            </div>
+                        </div>
+                    `;
+                }
+            });
+            
+            resultsHTML += `
+                    </div>
+                </div>
+            `;
+            
+            container.innerHTML = resultsHTML;
+        }
+
+        // Journey Creator Functions
+        async function createJourney() {
+            const button = document.getElementById('createJourneyBtn');
+            const progressDiv = document.getElementById('journeyProgress');
+            const resultsContainer = document.getElementById('journeyResults');
+            const progressMessage = document.getElementById('progressMessage');
+            const progressDetails = document.getElementById('progressDetails');
+            
+            // Get form data
+            const city = document.getElementById('journeyCity').value.trim();
+            const interests = document.getElementById('journeyInterests').value.trim();
+            const experienceType = document.getElementById('experienceType').value;
+            
+            // Validation
+            if (!city) {
+                alert('Please enter a destination city');
+                return;
+            }
+            
+            if (!interests) {
+                alert('Please describe your interests and desired atmosphere');
+                return;
+            }
+            
+            // Disable button and show progress
+            button.disabled = true;
+            button.textContent = '🔄 Crafting Journey...';
+            progressDiv.style.display = 'block';
+            resultsContainer.innerHTML = '';
+            
+            try {
+                // Initialize results container for streaming
+                resultsContainer.innerHTML = `
+                    <div class="result-item">
+                        <div class="result-header">
+                            <div class="result-title">🌍 Your ${city} Journey</div>
+                        </div>
+                        <div class="result-prompt">
+                            🎯 Interests: ${interests}<br>
+                            🎭 Experience Type: ${experienceType.replace('_', ' ').toUpperCase()}
+                        </div>
+                        <div id="streaming-results"></div>
+                    </div>
+                `;
+                const streamingContainer = document.getElementById('streaming-results');
+                
+                // Step 1: Generate search clauses
+                updateProgress('Crafting your journey...', 'Generating intelligent search clauses');
+                
+                const searchClauses = await generateSearchClauses(city, interests);
+                
+                // Show search clauses immediately
+                streamingContainer.innerHTML += `
+                    <div class="journey-section" style="opacity: 0; animation: fadeIn 0.5s ease-in forwards;">
+                        <h3>🔍 Intelligent Search Strategy</h3>
+                        <div style="margin-bottom: 15px;">
+                            <strong>Generated Search Clauses:</strong><br>
+                            <div style="margin-top: 10px;">
+                                ${searchClauses.map(clause => 
+                                    `<span class="search-clause">${clause}</span>`
+                                ).join('')}
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                // Step 2: Search the web and images
+                updateProgress('Searching the web for inspiration...', 'Finding the best content and visual references');
+                
+                const webResults = await searchWebContent(searchClauses, city, interests);
+                
+                // Show web results immediately
+                streamingContainer.innerHTML += `
+                    <div class="journey-section" style="opacity: 0; animation: fadeIn 0.5s ease-in forwards;">
+                        <h3>🌐 Web Research Results</h3>
+                        <div style="margin-bottom: 15px;">
+                            <strong>🔍 Found ${webResults.results?.length || 0} relevant sources:</strong><br>
+                            ${webResults.results?.slice(0, 3).map(result => `
+                                <div style="margin: 10px 0; padding: 10px; border-left: 3px solid #3b82f6; background: #f8fafc;">
+                                    <strong style="color: #1e293b;">${result.title}</strong><br>
+                                    <span style="color: #6b7280; font-size: 14px;">${result.snippet || 'No description available'}</span>
+                                </div>
+                            `).join('') || '<p style="color: #6b7280;">No web results available</p>'}
+                        </div>
+                        
+                        ${webResults.images && webResults.images.length > 0 ? `
+                            <div style="margin-top: 15px;">
+                                <strong>🖼️ Visual References:</strong><br>
+                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-top: 10px;">
+                                    ${webResults.images.slice(0, 4).map(img => `
+                                        <div style="border: 1px solid #e5e7eb; border-radius: 8px; padding: 8px; text-align: center;">
+                                            <img src="${img.url}" alt="${img.title}" style="width: 100%; height: 100px; object-fit: cover; border-radius: 4px; margin-bottom: 5px;">
+                                            <div style="font-size: 12px; color: #6b7280;">${img.source}</div>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+                
+                // Step 2.5: AI Visual Muse - Enhanced multimodal analysis
+                updateProgress('AI Visual Muse with multimodal embeddings...', 'Analyzing image+text patterns for cinematic inspiration');
+                
+                const inspirationBrief = await analyzeVisualInspiration(webResults.images, city, interests, webResults.multimodal_results);
+                
+                // Show inspiration brief immediately
+                if (inspirationBrief && inspirationBrief.extracted_moods) {
+                    streamingContainer.innerHTML += `
+                        <div class="journey-section" style="opacity: 0; animation: fadeIn 0.5s ease-in forwards;">
+                            <h3>🎨 AI Visual Muse - Inspiration Brief</h3>
+                            <div style="margin-bottom: 15px;">
+                                <strong>🎭 Dominant Moods:</strong><br>
+                                <div style="margin-top: 5px;">
+                                    ${inspirationBrief.extracted_moods.map(mood => 
+                                        `<span class="search-clause" style="background: #fef3c7; border-color: #f59e0b; color: #92400e;">${mood}</span>`
+                                    ).join('')}
+                                </div>
+                            </div>
+                            ${inspirationBrief.color_insights?.length ? `
+                                <div style="margin-bottom: 15px;">
+                                    <strong>🎨 Color & Lighting Insights:</strong><br>
+                                    ${inspirationBrief.color_insights.map(insight => `
+                                        <div style="font-size: 14px; color: #6b7280; margin: 5px 0; padding-left: 15px; border-left: 2px solid #f59e0b;">
+                                            ${insight}
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            ` : ''}
+                        </div>
+                    `;
+                }
+                
+                // Step 3: Analyze and curate with visual insights
+                updateProgress('Analyzing discoveries...', 'AI is curating the perfect experience with visual insights');
+                
+                const curatedContent = await analyzeAndCurate(webResults, city, interests, experienceType);
+                
+                // Step 4: AI Director - Generate structured storyboard
+                updateProgress('AI Director creating storyboard...', 'Structuring scenes, narration, and transitions');
+                
+                const storyboard = await generateStoryboard(inspirationBrief, city, interests, experienceType, 'Create an immersive cinematic journey');
+                
+                // Show storyboard immediately
+                if (storyboard && storyboard.scenes) {
+                    streamingContainer.innerHTML += `
+                        <div class="journey-section" style="opacity: 0; animation: fadeIn 0.5s ease-in forwards;">
+                            <h3>🎬 AI Director - Structured Storyboard</h3>
+                            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; margin-bottom: 15px;">
+                                <strong style="color: #1e293b;">📋 ${storyboard.storyboard_title || 'Production Storyboard'}</strong><br>
+                                <span style="color: #64748b; font-size: 14px;">
+                                    🎭 ${storyboard.narrative_arc || 'Narrative Arc'} • ⏱️ ${storyboard.total_duration || 'Duration TBD'}
+                                </span>
+                            </div>
+                            <div style="display: grid; gap: 10px;">
+                                ${storyboard.scenes.slice(0, 2).map((scene, index) => `
+                                    <div style="border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px; background: #ffffff;">
+                                        <div style="display: flex; align-items: center; margin-bottom: 8px;">
+                                            <div style="background: #3b82f6; color: white; border-radius: 50%; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; margin-right: 8px;">
+                                                ${index + 1}
+                                            </div>
+                                            <strong style="color: #1e293b; font-size: 14px;">${scene.title}</strong>
+                                            <span style="margin-left: auto; background: #f1f5f9; color: #475569; padding: 1px 6px; border-radius: 10px; font-size: 11px;">
+                                                ${scene.duration}s • ${scene.mood}
+                                            </span>
+                                        </div>
+                                        <div style="font-size: 12px; color: #6b7280; margin-top: 5px; padding-left: 8px; border-left: 2px solid #d1d5db;">
+                                            "${scene.narration}"
+                                        </div>
+                                    </div>
+                                `).join('')}
+                                ${storyboard.scenes.length > 2 ? `<div style="text-align: center; color: #6b7280; font-size: 13px;">... and ${storyboard.scenes.length - 2} more scenes</div>` : ''}
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                // Step 5: Parallel Video Generation - 75% time reduction
+                updateProgress('Generating 4 immersive scenes in parallel...', '⚡ Cutting generation time by 75% (20min → ~5min)');
+                
+                const parallelVideos = await generateParallelVideos(storyboard, city, interests);
+                
+                // Show video generation results immediately
+                if (parallelVideos && parallelVideos.generation_results) {
+                    const hasFailures = parallelVideos.generation_results.scenes_failed > 0;
+                    const canRegenerate = parallelVideos.can_regenerate || parallelVideos.regeneration_available;
+                    const failedVideos = parallelVideos.generation_results.failed_videos || [];
+                    
+                    streamingContainer.innerHTML += `
+                        <div class="journey-section" style="opacity: 0; animation: fadeIn 0.5s ease-in forwards;">
+                            <h3>⚡ Parallel Video Generation - 75% Time Reduction</h3>
+                            <div style="background: ${hasFailures ? '#fef3c7' : '#f0fdf4'}; border: 1px solid ${hasFailures ? '#f59e0b' : '#22c55e'}; border-radius: 8px; padding: 15px; margin-bottom: 15px;">
+                                <strong style="color: ${hasFailures ? '#92400e' : '#15803d'};">🚀 ${parallelVideos.storyboard_title}</strong><br>
+                                <span style="color: ${hasFailures ? '#d97706' : '#16a34a'}; font-size: 14px;">
+                                    ⏱️ Generated in ${parallelVideos.technical_summary.actual_parallel_time} • 
+                                    📊 ${parallelVideos.technical_summary.time_reduction} faster than sequential • 
+                                    🎬 ${parallelVideos.scenes_processed} scenes processed
+                                </span>
+                                ${hasFailures ? `<br><span style="color: #dc2626; font-size: 13px;">⚠️ ${parallelVideos.generation_results.scenes_failed} videos failed due to rate limits</span>` : ''}
+                            </div>
+                            
+                            <div style="display: grid; gap: 10px;">
+                                ${parallelVideos.generation_results.successful_videos.slice(0, 3).map((video, index) => `
+                                    <div style="border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px; background: #ffffff;">
+                                        <div style="display: flex; align-items: center; margin-bottom: 8px;">
+                                            <div style="background: ${video.status === 'completed' ? '#10b981' : '#ef4444'}; color: white; border-radius: 50%; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; margin-right: 8px;">
+                                                ${video.scene_id}
+                                            </div>
+                                            <strong style="color: #1e293b; font-size: 14px;">${video.title}</strong>
+                                            <span style="margin-left: auto; background: ${video.status === 'completed' ? '#dcfce7' : '#fecaca'}; color: ${video.status === 'completed' ? '#166534' : '#dc2626'}; padding: 1px 6px; border-radius: 10px; font-size: 11px;">
+                                                ${video.status === 'completed' ? '✅' : '❌'} ${video.status}
+                                            </span>
+                                        </div>
+                                        <div style="font-size: 11px; color: #6b7280;">
+                                            🚀 ${video.service_used} • ⏱️ ${video.generation_time}s
+                                        </div>
+                                    </div>
+                                `).join('')}
+                                
+                                ${failedVideos.length > 0 ? failedVideos.map((video, index) => `
+                                    <div style="border: 1px solid #fca5a5; border-radius: 8px; padding: 10px; background: #fef2f2;">
+                                        <div style="display: flex; align-items: center; margin-bottom: 8px;">
+                                            <div style="background: #ef4444; color: white; border-radius: 50%; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; margin-right: 8px;">
+                                                ${video.scene_id}
+                                            </div>
+                                            <strong style="color: #1e293b; font-size: 14px;">${video.title}</strong>
+                                            <span style="margin-left: auto; background: #fecaca; color: #dc2626; padding: 1px 6px; border-radius: 10px; font-size: 11px;">
+                                                ❌ ${video.user_message || 'Failed'}
+                                            </span>
+                                        </div>
+                                        <div style="font-size: 11px; color: #6b7280;">
+                                            ${video.can_retry ? '🔄 Can retry when rate limit resets' : '❌ Permanent failure'}
+                                        </div>
+                                    </div>
+                                `).join('') : ''}
+                            </div>
+                            
+                            ${canRegenerate ? `
+                                <div style="margin-top: 15px; padding: 15px; background: #eff6ff; border: 1px solid #3b82f6; border-radius: 8px;">
+                                    <div style="display: flex; align-items: center; justify-content: space-between;">
+                                        <div>
+                                            <strong style="color: #1e40af;">🔄 Video Regeneration Available</strong><br>
+                                            <span style="color: #3730a3; font-size: 13px;">${parallelVideos.regeneration_message || 'Some videos failed due to rate limits. You can retry them now.'}</span>
+                                        </div>
+                                        <button id="retryVideosBtn" onclick="retryFailedVideos('${city}', '${interests}', ${JSON.stringify(failedVideos).replace(/"/g, '&quot;')})" 
+                                                style="background: #3b82f6; color: white; border: none; padding: 8px 16px; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer; transition: background 0.2s;">
+                                            🔄 Retry Now
+                                        </button>
+                                    </div>
+                                </div>
+                            ` : ''}
+                        </div>
+                    `;
+                }
+                
+                // Step 6: Generate final experience
+                updateProgress('Creating your personalized journey...', 'Generating immersive content');
+                
+                const finalExperience = await generateFinalExperience(curatedContent, experienceType);
+                
+                // Show final experience
+                if (finalExperience && finalExperience.content) {
+                    streamingContainer.innerHTML += `
+                        <div class="journey-section" style="opacity: 0; animation: fadeIn 0.5s ease-in forwards;">
+                            <h3>✨ Your Personalized Experience</h3>
+                            ${finalExperience.content || '<p>Experience content will be displayed here</p>'}
+                        </div>
+                    `;
+                }
+                
+                // Hide progress bar when complete
+                progressDiv.style.display = 'none';
+                
+            } catch (error) {
+                console.error('Journey creation error:', error);
+                progressDiv.style.display = 'none';
+                resultsContainer.innerHTML = `
+                    <div class="result-item" style="border-color: #ef4444;">
+                        <div class="result-header">
+                            <div class="result-title">❌ Journey Creation Failed</div>
+                        </div>
+                        <div class="result-prompt" style="color: #dc2626;">
+                            Error: ${error.message || 'An unexpected error occurred'}
+                        </div>
+                    </div>
+                `;
+            } finally {
+                // Re-enable button
+                button.disabled = false;
+                button.textContent = '🚀 Craft My Journey';
+            }
+        }
+        
+        function updateProgress(message, details) {
+            document.getElementById('progressMessage').textContent = message;
+            document.getElementById('progressDetails').textContent = details;
+        }
+        
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+        
+        async function generateSearchClauses(city, interests) {
+            const response = await fetch('/api/generate-search-clauses', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    city: city,
+                    interests: interests
+                })
+            });
+            
+            if (!response.ok) {
+                throw new Error('Failed to generate search clauses');
+            }
+            
+            const data = await response.json();
+            return data.search_clauses || [];
+        }
+        
+        async function searchWebContent(searchClauses, city, interests) {
+            const response = await fetch('/api/search-web-content', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    search_clauses: searchClauses,
+                    city: city,
+                    interests: interests
+                })
+            });
+            
+            if (!response.ok) {
+                throw new Error('Failed to search web content');
+            }
+            
+            const data = await response.json();
+            return data || { results: [], images: [] };
+        }
+        
+        async function analyzeVisualInspiration(images, city, interests, multimodalResults = []) {
+            const response = await fetch('/api/analyze-visual-inspiration', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    images: images,
+                    multimodal_results: multimodalResults,
+                    city: city,
+                    interests: interests
+                })
+            });
+            
+            if (!response.ok) {
+                throw new Error('Failed to analyze visual inspiration');
+            }
+            
+            const data = await response.json();
+            return data.inspiration_brief || {};
+        }
+        
+        async function analyzeAndCurate(webResults, city, interests, experienceType) {
+            const response = await fetch('/api/analyze-and-curate', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    web_results: webResults.results || [],
+                    city: city,
+                    interests: interests,
+                    experience_type: experienceType
+                })
+            });
+            
+            if (!response.ok) {
+                throw new Error('Failed to analyze and curate content');
+            }
+            
+            const data = await response.json();
+            return data.curated_content || {};
+        }
+        
+        async function generateFinalExperience(curatedContent, experienceType) {
+            const response = await fetch('/api/generate-final-experience', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    curated_content: curatedContent,
+                    experience_type: experienceType
+                })
+            });
+            
+            if (!response.ok) {
+                throw new Error('Failed to generate final experience');
+            }
+            
+            const data = await response.json();
+            return data.experience || {};
+        }
+        
+        async function generateStoryboard(inspirationBrief, city, interests, experienceType, userVision) {
+            const response = await fetch('/api/generate-storyboard', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    inspiration_brief: inspirationBrief,
+                    city: city,
+                    interests: interests,
+                    experience_type: experienceType,
+                    user_vision: userVision
+                })
+            });
+            
+            if (!response.ok) {
+                throw new Error('Failed to generate storyboard');
+            }
+            
+            const data = await response.json();
+            return data.storyboard || {};
+        }
+        
+        async function generateParallelVideos(storyboard, city, interests) {
+            const response = await fetch('/api/generate-parallel-videos', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    storyboard: storyboard,
+                    city: city,
+                    interests: interests
+                })
+            });
+            
+            if (!response.ok) {
+                throw new Error('Failed to generate parallel videos');
+            }
+            
+            const data = await response.json();
+            return data || {};
+        }
+        
+        async function retryFailedVideos(city, interests, failedVideos) {
+            const retryBtn = document.getElementById('retryVideosBtn');
+            if (retryBtn) {
+                retryBtn.disabled = true;
+                retryBtn.innerHTML = '🔄 Retrying...';
+                retryBtn.style.background = '#6b7280';
+            }
+            
+            try {
+                console.log('Retrying failed videos:', failedVideos);
+                
+                const response = await fetch('/api/regenerate-failed-videos', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        failed_scenes: failedVideos,
+                        city: city,
+                        interests: interests
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success && data.regenerated_count > 0) {
+                    // Update the UI to show success
+                    const retrySection = retryBtn.closest('div').closest('div');
+                    retrySection.innerHTML = `
+                        <div style="padding: 15px; background: #f0fdf4; border: 1px solid #22c55e; border-radius: 8px;">
+                            <strong style="color: #15803d;">✅ Regeneration Successful!</strong><br>
+                            <span style="color: #16a34a; font-size: 13px;">
+                                🎬 Successfully regenerated ${data.regenerated_count} videos! 
+                                ${data.still_failed_count > 0 ? `(${data.still_failed_count} still failed)` : ''}
+                            </span>
+                            ${data.can_retry_again ? `
+                                <br><button onclick="location.reload()" style="margin-top: 8px; background: #3b82f6; color: white; border: none; padding: 6px 12px; border-radius: 4px; font-size: 12px; cursor: pointer;">
+                                    🔄 Refresh to see results
+                                </button>
+                            ` : ''}
+                        </div>
+                    `;
+                } else if (data.still_failed_count > 0) {
+                    // Some videos still failed
+                    if (retryBtn) {
+                        retryBtn.disabled = false;
+                        retryBtn.innerHTML = '🔄 Retry Again';
+                        retryBtn.style.background = '#f59e0b';
+                    }
+                    
+                    // Show partial success message
+                    const statusDiv = document.createElement('div');
+                    statusDiv.style.cssText = 'margin-top: 10px; padding: 10px; background: #fef3c7; border: 1px solid #f59e0b; border-radius: 6px; font-size: 13px; color: #92400e;';
+                    statusDiv.innerHTML = `⚠️ ${data.regenerated_count} videos succeeded, ${data.still_failed_count} still failed due to rate limits`;
+                    retryBtn.parentNode.appendChild(statusDiv);
+                } else {
+                    // Complete failure
+                    if (retryBtn) {
+                        retryBtn.disabled = false;
+                        retryBtn.innerHTML = '🔄 Try Again';
+                        retryBtn.style.background = '#ef4444';
+                    }
+                    
+                    const errorDiv = document.createElement('div');
+                    errorDiv.style.cssText = 'margin-top: 10px; padding: 10px; background: #fef2f2; border: 1px solid #ef4444; border-radius: 6px; font-size: 13px; color: #dc2626;';
+                    errorDiv.innerHTML = `❌ Regeneration failed: ${data.error || 'Rate limits still active'}`;
+                    retryBtn.parentNode.appendChild(errorDiv);
+                }
+                
+            } catch (error) {
+                console.error('Retry failed:', error);
+                
+                if (retryBtn) {
+                    retryBtn.disabled = false;
+                    retryBtn.innerHTML = '🔄 Retry Now';
+                    retryBtn.style.background = '#ef4444';
+                }
+                
+                const errorDiv = document.createElement('div');
+                errorDiv.style.cssText = 'margin-top: 10px; padding: 10px; background: #fef2f2; border: 1px solid #ef4444; border-radius: 6px; font-size: 13px; color: #dc2626;';
+                errorDiv.innerHTML = `❌ Network error: ${error.message}`;
+                retryBtn.parentNode.appendChild(errorDiv);
+            }
+        }
+        
+        function showJourneyResults(container, data) {
+            const { city, interests, experienceType, searchClauses, webResults, inspirationBrief, storyboard, parallelVideos, finalExperience } = data;
+            
+            let resultsHTML = `
+                <div class="result-item">
+                    <div class="result-header">
+                        <div class="result-title">🌍 Your ${city} Journey</div>
+                    </div>
+                    <div class="result-prompt">
+                        🎯 Interests: ${interests}<br>
+                        🎭 Experience Type: ${experienceType.replace('_', ' ').toUpperCase()}
+                    </div>
+                    
+                    <div class="journey-section">
+                        <h3>🔍 Generated Search Clauses</h3>
+                        <div>
+                            ${searchClauses.map(clause => `<span class="search-clause">${clause}</span>`).join('')}
+                        </div>
+                    </div>
+                    
+                    <div class="journey-section">
+                        <h3>🎨 AI Visual Muse - Inspiration Brief</h3>
+                        ${inspirationBrief && inspirationBrief.extracted_moods ? `
+                            <div style="margin-bottom: 15px;">
+                                <strong>🎭 Dominant Moods:</strong><br>
+                                <div style="margin-top: 5px;">
+                                    ${inspirationBrief.extracted_moods.map(mood => `<span class="search-clause" style="background: #fef3c7; border-color: #f59e0b; color: #92400e;">${mood}</span>`).join('')}
+                                </div>
+                            </div>
+                        ` : ''}
+                        
+                        ${inspirationBrief && inspirationBrief.color_insights && inspirationBrief.color_insights.length > 0 ? `
+                            <div style="margin-bottom: 15px;">
+                                <strong>🎨 Color & Lighting Insights:</strong><br>
+                                ${inspirationBrief.color_insights.map(insight => `
+                                    <div style="font-size: 14px; color: #6b7280; margin: 5px 0; padding-left: 15px; border-left: 2px solid #f59e0b;">
+                                        ${insight}
+                                    </div>
+                                `).join('')}
+                            </div>
+                        ` : ''}
+                        
+                        ${inspirationBrief && inspirationBrief.camera_insights && inspirationBrief.camera_insights.length > 0 ? `
+                            <div style="margin-bottom: 15px;">
+                                <strong>📷 Camera Techniques:</strong><br>
+                                ${inspirationBrief.camera_insights.map(technique => `
+                                    <div style="font-size: 14px; color: #6b7280; margin: 5px 0; padding-left: 15px; border-left: 2px solid #3b82f6;">
+                                        ${technique}
+                                    </div>
+                                `).join('')}
+                            </div>
+                        ` : ''}
+                        
+                        ${inspirationBrief && inspirationBrief.images_analyzed ? `
+                            <p style="color: #6b7280; font-size: 13px; margin-top: 10px;">
+                                🧠 Gemini Multimodal Analysis: ${inspirationBrief.images_analyzed} visual references + text embeddings
+                            </p>
+                        ` : ''}
+                        
+                        ${webResults.gemini_multimodal_used ? `
+                            <div style="background: #f0f9ff; border: 1px solid #0ea5e9; border-radius: 6px; padding: 10px; margin-top: 10px;">
+                                <strong style="color: #0c4a6e;">🚀 Enhanced with Gemini 2.5 Multimodal Capabilities</strong><br>
+                                <span style="color: #0369a1; font-size: 13px;">
+                                    Image+text embeddings analyzed for deeper cultural and visual understanding
+                                </span>
+                            </div>
+                        ` : ''}
+                    </div>
+                    
+                    <div class="journey-section">
+                        <h3>🌐 Web Research Results</h3>
+                        <p style="color: #6b7280;">Found ${webResults.results ? webResults.results.length : 0} relevant sources</p>
+                        ${webResults.results ? webResults.results.slice(0, 5).map(result => `
+                            <div style="border-left: 3px solid #3b82f6; padding-left: 12px; margin: 10px 0;">
+                                <strong>${result.title || 'Untitled'}</strong><br>
+                                <span style="color: #6b7280; font-size: 14px;">${result.snippet || 'No description available'}</span>
+                            </div>
+                        `).join('') : '<p style="color: #6b7280;">No web results available</p>'}
+                        
+                        ${webResults.images && webResults.images.length > 0 ? `
+                            <div style="margin-top: 15px;">
+                                <strong>🖼️ Visual References:</strong><br>
+                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-top: 10px;">
+                                    ${webResults.images.slice(0, 4).map(img => `
+                                        <div style="border: 1px solid #e5e7eb; border-radius: 8px; padding: 8px; text-align: center;">
+                                            <img src="${img.url}" alt="${img.title}" style="width: 100%; height: 100px; object-fit: cover; border-radius: 4px; margin-bottom: 5px;">
+                                            <div style="font-size: 12px; color: #6b7280;">${img.source}</div>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        ` : ''}
+                    </div>
+                    
+                    ${storyboard && storyboard.scenes ? `
+                        <div class="journey-section">
+                            <h3>🎬 AI Director - Structured Storyboard</h3>
+                            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; margin-bottom: 15px;">
+                                <strong style="color: #1e293b;">📋 ${storyboard.storyboard_title || 'Production Storyboard'}</strong><br>
+                                <span style="color: #64748b; font-size: 14px;">
+                                    🎭 ${storyboard.narrative_arc || 'Narrative Arc'} • ⏱️ ${storyboard.total_duration || 'Duration TBD'}
+                                </span>
+                            </div>
+                            
+                            <div style="display: grid; gap: 15px;">
+                                ${storyboard.scenes.map((scene, index) => `
+                                    <div style="border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; background: #ffffff;">
+                                        <div style="display: flex; align-items: center; margin-bottom: 10px;">
+                                            <div style="background: #3b82f6; color: white; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; margin-right: 10px;">
+                                                ${index + 1}
+                                            </div>
+                                            <strong style="color: #1e293b;">${scene.title}</strong>
+                                            <span style="margin-left: auto; background: #f1f5f9; color: #475569; padding: 2px 8px; border-radius: 12px; font-size: 12px;">
+                                                ${scene.duration}s • ${scene.mood}
+                                            </span>
+                                        </div>
+                                        
+                                        <div style="margin-bottom: 10px;">
+                                            <strong style="color: #374151; font-size: 14px;">🎥 Video Prompt:</strong><br>
+                                            <div style="background: #f9fafb; padding: 8px; border-radius: 4px; font-size: 13px; color: #4b5563; margin-top: 5px;">
+                                                ${scene.video_prompt}
+                                            </div>
+                                        </div>
+                                        
+                                        <div style="margin-bottom: 10px;">
+                                            <strong style="color: #374151; font-size: 14px;">🎙️ Narration:</strong><br>
+                                            <div style="font-style: italic; color: #6b7280; font-size: 13px; margin-top: 5px; padding-left: 10px; border-left: 3px solid #d1d5db;">
+                                                "${scene.narration}"
+                                            </div>
+                                        </div>
+                                        
+                                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 12px;">
+                                            <div>
+                                                <strong style="color: #6b7280;">📹 Camera Work:</strong><br>
+                                                <span style="color: #9ca3af;">${scene.camera_work}</span>
+                                            </div>
+                                            <div>
+                                                <strong style="color: #6b7280;">🔄 Transition:</strong><br>
+                                                <span style="color: #9ca3af;">${scene.transition}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                            
+                            ${storyboard.technical_notes ? `
+                                <div style="background: #fef7cd; border: 1px solid #fbbf24; border-radius: 8px; padding: 12px; margin-top: 15px;">
+                                    <strong style="color: #92400e;">🎨 Technical Notes:</strong><br>
+                                    <div style="font-size: 13px; color: #a16207; margin-top: 5px;">
+                                        <strong>Color Palette:</strong> ${storyboard.technical_notes.color_palette}<br>
+                                        <strong>Audio:</strong> ${storyboard.technical_notes.audio_suggestions}<br>
+                                        <strong>Pacing:</strong> ${storyboard.technical_notes.pacing}<br>
+                                        <strong>Target Emotion:</strong> ${storyboard.technical_notes.target_emotion}
+                                    </div>
+                                </div>
+                            ` : ''}
+                        </div>
+                    ` : ''}
+                    
+                    ${parallelVideos && parallelVideos.generation_results ? `
+                        <div class="journey-section">
+                            <h3>⚡ Parallel Video Generation - 75% Time Reduction</h3>
+                            <div style="background: #f0fdf4; border: 1px solid #22c55e; border-radius: 8px; padding: 15px; margin-bottom: 15px;">
+                                <strong style="color: #15803d;">🚀 ${parallelVideos.storyboard_title}</strong><br>
+                                <span style="color: #16a34a; font-size: 14px;">
+                                    ⏱️ Generated in ${parallelVideos.technical_summary.actual_parallel_time} • 
+                                    📊 ${parallelVideos.technical_summary.time_reduction} faster than sequential • 
+                                    🎬 ${parallelVideos.scenes_processed} scenes processed
+                                </span>
+                            </div>
+                            
+                            <div style="background: #fef3c7; border: 1px solid #f59e0b; border-radius: 8px; padding: 12px; margin-bottom: 15px;">
+                                <strong style="color: #92400e;">📈 Performance Metrics:</strong><br>
+                                <div style="font-size: 13px; color: #a16207; margin-top: 5px;">
+                                    <strong>Sequential Time:</strong> ${parallelVideos.technical_summary.estimated_sequential_time}<br>
+                                    <strong>Parallel Time:</strong> ${parallelVideos.technical_summary.actual_parallel_time}<br>
+                                    <strong>Services Used:</strong> ${parallelVideos.services_used.join(', ')}<br>
+                                    <strong>Total Duration:</strong> ${parallelVideos.technical_summary.total_duration}s of video content
+                                </div>
+                            </div>
+                            
+                            <div style="display: grid; gap: 15px;">
+                                ${parallelVideos.generation_results.successful_videos.map((video, index) => `
+                                    <div style="border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; background: #ffffff;">
+                                        <div style="display: flex; align-items: center; margin-bottom: 10px;">
+                                            <div style="background: #10b981; color: white; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; margin-right: 10px;">
+                                                ${video.scene_id}
+                                            </div>
+                                            <strong style="color: #1e293b;">${video.title}</strong>
+                                            <span style="margin-left: auto; background: ${video.status === 'completed' ? '#dcfce7' : '#fecaca'}; color: ${video.status === 'completed' ? '#166534' : '#dc2626'}; padding: 2px 8px; border-radius: 12px; font-size: 12px;">
+                                                ${video.status === 'completed' ? '✅' : '❌'} ${video.status} ${video.duration ? '• ' + video.duration + 's' : ''}
+                                            </span>
+                                        </div>
+                                        
+                                        <div style="margin-bottom: 10px;">
+                                            <strong style="color: #374151; font-size: 14px;">🎥 Generated Video:</strong><br>
+                                            ${video.video_url && !video.simulated ? `
+                                                <video controls style="width: 100%; max-width: 400px; border-radius: 8px; margin: 10px 0;">
+                                                    <source src="${video.video_url}" type="video/mp4">
+                                                    Your browser does not support the video tag.
+                                                </video>
+                                            ` : ''}
+                                            <div style="background: #f9fafb; padding: 8px; border-radius: 4px; font-size: 13px; color: #4b5563; margin-top: 5px;">
+                                                📁 ${video.video_filename}<br>
+                                                🔧 ${video.technical_specs ? video.technical_specs.resolution : 'N/A'} • ${video.technical_specs ? video.technical_specs.fps : 'N/A'}fps • ${video.technical_specs ? video.technical_specs.codec : 'N/A'}
+                                                ${video.status === 'failed' ? '<br>❌ Generation failed: ' + (video.error || 'Unknown error') : 
+                                                  video.simulated ? '<br>⚠️ Simulated output (real API integration pending)' : 
+                                                  '<br>✅ Real video generated with ' + video.service_used}
+                                            </div>
+                                        </div>
+                                        
+                                        <div style="margin-bottom: 10px;">
+                                            <strong style="color: #374151; font-size: 14px;">📝 Prompt Used:</strong><br>
+                                            <div style="font-size: 12px; color: #6b7280; margin-top: 5px; padding-left: 10px; border-left: 3px solid #d1d5db;">
+                                                ${video.prompt_used}
+                                            </div>
+                                        </div>
+                                        
+                                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 12px;">
+                                            <div>
+                                                <strong style="color: #6b7280;">🚀 Service:</strong><br>
+                                                <span style="color: #9ca3af;">${video.service_used}</span>
+                                            </div>
+                                            <div>
+                                                <strong style="color: #6b7280;">⏱️ Generation Time:</strong><br>
+                                                <span style="color: #9ca3af;">${video.generation_time}s</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                            
+                            ${parallelVideos.next_steps ? `
+                                <div style="background: #eff6ff; border: 1px solid #3b82f6; border-radius: 8px; padding: 12px; margin-top: 15px;">
+                                    <strong style="color: #1e40af;">🎬 Next Steps:</strong><br>
+                                    <div style="font-size: 13px; color: #1d4ed8; margin-top: 5px;">
+                                        <strong>Video Editing:</strong> ${parallelVideos.next_steps.video_editing}<br>
+                                        <strong>Audio Sync:</strong> ${parallelVideos.next_steps.audio_sync}<br>
+                                        <strong>Final Render:</strong> ${parallelVideos.next_steps.final_render}
+                                    </div>
+                                </div>
+                            ` : ''}
+                        </div>
+                    ` : ''}
+                    
+                    <div class="journey-section">
+                        <h3>✨ Your Personalized Experience</h3>
+                        ${finalExperience.content || '<p>Experience content will be displayed here</p>'}
+                    </div>
+                </div>
+            `;
+            
+            container.innerHTML = resultsHTML;
+        }
+    </script>
+</body>
+</html>
